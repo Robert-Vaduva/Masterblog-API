@@ -5,3 +5,5 @@ Jinja2
 requests
 python-dotenv
 sqlalchemy
+flask-cors
+flask_swagger_ui
