@@ -1,12 +1,13 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)  # This will enable CORS for all routes
 
 POSTS = [
-    {"id": 1, "title": "First post", "content": "This is the first post."},
-    {"id": 2, "title": "Second post", "content": "This is the second post."},
+    {"id": 1, "title": "First post", "author": "Robert", "content": "This is the first post.", "date": "2023-06-07"},
+    {"id": 2, "title": "Second post", "author": "Robert", "content": "This is the second post.", "date": "2023-06-07"},
 ]
 
 
@@ -17,15 +18,15 @@ def get_posts():
     direction = request.args.get('direction', 'asc')  # default: ascending
 
     # error handling
-    if sort not in ('title', 'content'):
-        return jsonify({"error": "Can only sort by 'title' or 'content'"}), 400  # 400 = Bad request
+    if not sort and not direction:
+        return jsonify(POSTS)
+    if sort not in ('title', 'content', 'author', 'date'):
+        return jsonify({"error": "Can only sort by 'title'/'content'/'author'/'date'"}), 400  # 400 = Bad request
 
     # sort the list
     reverse = direction == "desc"
     new_list = sorted(POSTS, key=lambda x: x[sort].lower(), reverse=reverse)
 
-    if not sort and not direction:
-        return jsonify(POSTS)
     return jsonify(new_list)
 
 
@@ -35,8 +36,8 @@ def add_post():
     data = request.get_json()
 
     # error handling
-    if ((data["title"] == "" or data["content"] == "") or
-            ("title" not in data or "content" not in data)):
+    if ((data["title"] == "" or data["content"] == "" or data["author"] == "") or
+            ("title" not in data or "content" not in data or "author" not in data)):
         return jsonify({"error": "Invalid input"}), 400  # 400 = Bad request
 
     # Generate new id and add the data in the list
@@ -44,7 +45,9 @@ def add_post():
     new_post = {
         "id": new_id,
         "title": data["title"],
-        "content": data["content"]
+        "content": data["content"],
+        "author": data["author"],
+        "date": datetime.now().today().strftime("%Y-%m-%d")
     }
     POSTS.append(new_post)
 
@@ -75,7 +78,7 @@ def update_post(post_id):
     data = request.get_json()  # Expecting JSON in request body
 
     # error handling
-    if "title" not in data or "content" not in data:
+    if "title" not in data or "content" not in data or "author" not in data:
         return jsonify({"error": "Invalid input"}), 400  # 400 = Bad request
 
     # update the requested post
@@ -85,6 +88,8 @@ def update_post(post_id):
             post = elem
             POSTS[index]["title"] = data["title"] if data["title"] else POSTS[index]["title"]
             POSTS[index]["content"] = data["content"] if data["content"] else POSTS[index]["content"]
+            POSTS[index]["author"] = data["author"] if data["author"] else POSTS[index]["author"]
+            POSTS[index]["date"] = datetime.now().today().strftime("%Y-%m-%d")
             return jsonify({"message": "Post with id <id> has been updated successfully."}), 200  # 200 = OK
     if post is None:
         return jsonify({"error": "Post not found"}), 404  # 404 = Not found
@@ -95,15 +100,21 @@ def search_post():
     # get inputs
     title = request.args.get("title", '').lower()
     content = request.args.get("content", '').lower()
+    author = request.args.get("author", '').lower()
+    date = request.args.get("date", '').lower()
+
+    if not title and not content and not author and not date:
+        return jsonify(POSTS)
 
     # perform search
     search_list = []
     for post in POSTS:
         if ((title in post['title'].lower() and title) or
+                (author in post['author'].lower() and author) or
+                (date in post['date'].lower() and date) or
                 (content in post['content'].lower() and content)):
             search_list.append(post)
-    if not title and not content:
-        return jsonify(POSTS)
+
     return jsonify(search_list)
 
 

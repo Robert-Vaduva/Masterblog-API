@@ -27,8 +27,12 @@ function loadPosts() {
             data.forEach(post => {
                 const postDiv = document.createElement('div');
                 postDiv.className = 'post';
-                postDiv.innerHTML = `<h2>${post.title}</h2><p>${post.content}</p>
-                <button onclick="deletePost(${post.id})">Delete</button>`;
+                postDiv.innerHTML = `
+                    <h2>${post.title} - ${post.author} - ${post.date}</h2>
+                    <p>${post.content}</p>
+                    <button onclick="deletePost(${post.id})">Delete</button>
+                    <button onclick="updatePost(${post.id})">Update</button>
+                `;
                 postContainer.appendChild(postDiv);
             });
         })
@@ -40,13 +44,14 @@ function addPost() {
     // Retrieve the values from the input fields
     var baseUrl = document.getElementById('api-base-url').value;
     var postTitle = document.getElementById('post-title').value;
+    var postAuthor = document.getElementById('post-author').value;
     var postContent = document.getElementById('post-content').value;
 
     // Use the Fetch API to send a POST request to the /posts endpoint
     fetch(baseUrl + '/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: postTitle, content: postContent })
+        body: JSON.stringify({ title: postTitle, author: postAuthor, content: postContent })
     })
     .then(response => response.json())  // Parse the JSON data from the response
     .then(post => {
@@ -69,4 +74,33 @@ function deletePost(postId) {
         loadPosts(); // Reload the posts after deleting one
     })
     .catch(error => console.error('Error:', error));  // If an error occurs, log it to the console
+}
+
+// Function to send a PUT request to the API to update a post
+function updatePost(postId) {
+    var baseUrl = document.getElementById('api-base-url').value;
+    var newTitle = prompt("Enter new title:");
+    var newAuthor = prompt("Enter new author:");
+    var newContent = prompt("Enter new content:");
+
+    if (!newTitle || !newAuthor || !newContent) {
+        alert("All fields are required!");
+        return;
+    }
+
+    fetch(baseUrl + '/posts/' + postId, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            title: newTitle,
+            author: newAuthor,
+            content: newContent
+        })
+    })
+    .then(response => response.json())
+    .then(updated => {
+        console.log('Post updated:', updated);
+        loadPosts();
+    })
+    .catch(error => console.error('Error:', error));
 }
