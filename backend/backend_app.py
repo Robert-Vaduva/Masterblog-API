@@ -14,35 +14,32 @@ for demonstration purposes only.
 from datetime import datetime
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from json_helper import read_json_data, write_json_data
+
 
 app = Flask(__name__)
 CORS(app)  # This will enable CORS for all routes
-
-POSTS = [
-    {"id": 1, "title": "First post", "author": "Robert",
-     "content": "This is the first post.", "date": "2023-06-07"},
-    {"id": 2, "title": "Second post", "author": "Robert",
-     "content": "This is the second post.", "date": "2023-06-07"},
-]
+PATH = "../data/blogs.json"
 
 
 @app.route('/api/posts', methods=['GET'])
 def get_posts():
     """Retrieve all posts with optional sorting by title, content, author, or date."""
     # get inputs
+    posts_local = read_json_data(PATH)
     sort = request.args.get('sort', 'title')  # default: title
     direction = request.args.get('direction', 'asc')  # default: ascending
 
     # error handling
     if not sort and not direction:
-        return jsonify(POSTS)
+        return jsonify(posts_local)
     if sort not in ('title', 'content', 'author', 'date'):
         return jsonify({"error": "Can only sort by "
                                  "'title'/'content'/'author'/'date'"}), 400  # 400 = Bad request
 
     # sort the list
     reverse = direction == "desc"
-    new_list = sorted(POSTS, key=lambda x: x[sort].lower(), reverse=reverse)
+    new_list = sorted(posts_local, key=lambda x: x[sort].lower(), reverse=reverse)
 
     return jsonify(new_list)
 
@@ -51,6 +48,7 @@ def get_posts():
 def add_post():
     """Create a new post with title, content, and author."""
     # get inputs
+    posts_local = read_json_data(PATH)
     data = request.get_json()
 
     # error handling
@@ -60,7 +58,7 @@ def add_post():
         return jsonify({"error": "Invalid input"}), 400  # 400 = Bad request
 
     # Generate new id and add the data in the list
-    new_id = max(post["id"] for post in POSTS) + 1 if POSTS else 1
+    new_id = max(post["id"] for post in posts_local) + 1 if posts_local else 1
     new_post = {
         "id": new_id,
         "title": data["title"],
@@ -68,18 +66,20 @@ def add_post():
         "author": data["author"],
         "date": datetime.now().today().strftime("%Y-%m-%d")
     }
-    POSTS.append(new_post)
+    posts_local.append(new_post)
 
+    write_json_data(PATH, posts_local)
     return jsonify(new_post), 201  # 201 = Created
 
 
 @app.route('/api/posts/<int:post_id>', methods=['DELETE'])
 def delete_post(post_id):
     """Delete a post by its ID."""
-    posts_local = POSTS
+    posts_local = read_json_data(PATH)
     for elem in posts_local:
         if elem["id"] == post_id:
-            POSTS.remove(elem)
+            posts_local.remove(elem)
+            write_json_data(PATH, posts_local)
             return jsonify({"message": f"Post with id {post_id} "
                                        f"has been deleted successfully."}), 200  # 200 = OK
     return jsonify({"error": "Post not found"}), 404
@@ -89,6 +89,7 @@ def delete_post(post_id):
 def update_post(post_id):
     """Update a post’s title, content, or author by its ID."""
     # get inputs
+    posts_local = read_json_data(PATH)
     data = request.get_json()  # Expecting JSON in request body
 
     # error handling
@@ -96,15 +97,16 @@ def update_post(post_id):
         return jsonify({"error": "Invalid input"}), 400  # 400 = Bad request
 
     # update the requested post
-    for index, elem in enumerate(POSTS):
+    for index, elem in enumerate(posts_local):
         if elem["id"] == post_id:
-            POSTS[index]["title"] = data["title"] if data["title"] \
-                else POSTS[index]["title"]
-            POSTS[index]["content"] = data["content"] if data["content"] \
-                else POSTS[index]["content"]
-            POSTS[index]["author"] = data["author"] if data["author"] \
-                else POSTS[index]["author"]
-            POSTS[index]["date"] = datetime.now().today().strftime("%Y-%m-%d")
+            posts_local[index]["title"] = data["title"] if data["title"] \
+                else posts_local[index]["title"]
+            posts_local[index]["content"] = data["content"] if data["content"] \
+                else posts_local[index]["content"]
+            posts_local[index]["author"] = data["author"] if data["author"] \
+                else posts_local[index]["author"]
+            posts_local[index]["date"] = datetime.now().today().strftime("%Y-%m-%d")
+            write_json_data(PATH, posts_local)
             return jsonify({"message": "Post with id <id> "
                                        "has been updated successfully."}), 200  # 200 = OK
     return jsonify({"error": "Post not found"}), 404  # 404 = Not found
@@ -114,21 +116,24 @@ def update_post(post_id):
 def search_post():
     """Search posts by title, content, author, or date."""
     # get inputs
+    posts_local = read_json_data(PATH)
     title = request.args.get("title", '').lower()
     content = request.args.get("content", '').lower()
     author = request.args.get("author", '').lower()
     date = request.args.get("date", '').lower()
 
     if not title and not content and not author and not date:
-        return jsonify(POSTS)
+        return jsonify(posts_local)
 
     # perform search
     search_list = []
-    for post in POSTS:
-        if ((title in post['title'].lower() and title) or
-                (author in post['author'].lower() and author) or
-                (date in post['date'].lower() and date) or
-                (content in post['content'].lower() and content)):
+    for post in posts_local:
+        match_title = title and title in post['title'].lower()
+        match_author = author and author in post['author'].lower()
+        match_date = date and date in post['date'].lower()
+        match_content = content and content in post['content'].lower()
+
+        if match_title or match_author or match_date or match_content:
             search_list.append(post)
 
     return jsonify(search_list)
