@@ -30,8 +30,8 @@ function loadPosts() {
                 postDiv.innerHTML = `
                     <h2>${post.title} - ${post.author} - ${post.date}</h2>
                     <p>${post.content}</p>
-                    <button onclick="deletePost(${post.id})">Delete</button>
                     <button onclick="updatePost(${post.id})">Update</button>
+                    <button onclick="deletePost(${post.id})">Delete</button>
                 `;
                 postContainer.appendChild(postDiv);
             });
@@ -57,6 +57,11 @@ function addPost() {
     .then(post => {
         console.log('Post added:', post);
         loadPosts(); // Reload the posts after adding a new one
+
+        // empty fields after an ADD command
+        document.getElementById('post-title').value = '';
+        document.getElementById('post-author').value = '';
+        document.getElementById('post-content').value = '';
     })
     .catch(error => console.error('Error:', error));  // If an error occurs, log it to the console
 }

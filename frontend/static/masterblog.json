@@ -13,6 +13,19 @@
       "description": "Post API - CRUD and search"
     }
   ],
+  "definitions": {
+    "Post": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "author": { "type": "string" },
+        "date": { "type": "string", "format": "date" }
+      },
+      "required": ["title", "content", "author"]
+    }
+  },
   "paths": {
     "/posts": {
       "get": {
@@ -24,7 +37,7 @@
             "name": "sort",
             "in": "query",
             "type": "string",
-            "enum": ["title", "content"],
+            "enum": ["title", "content", "author", "date"],
             "default": "title",
             "description": "Field to sort by"
           },
@@ -39,7 +52,8 @@
         ],
         "responses": {
           "200": {
-            "description": "List of posts"
+            "description": "List of posts",
+            "schema": { "type": "array", "items": { "$ref": "#/definitions/Post" } }
           },
           "400": {
             "description": "Invalid sort field"
@@ -58,22 +72,13 @@
             "description": "Post object",
             "required": true,
             "schema": {
-              "type": "object",
-              "properties": {
-                "title": { "type": "string" },
-                "content": { "type": "string" }
-              },
-              "required": ["title", "content"]
+              "$ref": "#/definitions/Post"
             }
           }
         ],
         "responses": {
-          "201": {
-            "description": "Post created"
-          },
-          "400": {
-            "description": "Invalid input"
-          }
+          "201": { "description": "Post created", "schema": { "$ref": "#/definitions/Post" } },
+          "400": { "description": "Invalid input" }
         }
       }
     },
@@ -84,36 +89,13 @@
         "consumes": ["application/json"],
         "produces": ["application/json"],
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "type": "integer"
-          },
-          {
-            "in": "body",
-            "name": "body",
-            "description": "Updated post data",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "title": { "type": "string" },
-                "content": { "type": "string" }
-              }
-            }
-          }
+          { "name": "id", "in": "path", "required": true, "type": "integer" },
+          { "in": "body", "name": "body", "required": true, "schema": { "$ref": "#/definitions/Post" } }
         ],
         "responses": {
-          "200": {
-            "description": "Post updated"
-          },
-          "400": {
-            "description": "Invalid input"
-          },
-          "404": {
-            "description": "Post not found"
-          }
+          "200": { "description": "Post updated" },
+          "400": { "description": "Invalid input" },
+          "404": { "description": "Post not found" }
         }
       },
       "delete": {
@@ -121,45 +103,29 @@
         "tags": ["Post"],
         "produces": ["application/json"],
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "type": "integer"
-          }
+          { "name": "id", "in": "path", "required": true, "type": "integer" }
         ],
         "responses": {
-          "200": {
-            "description": "Post deleted"
-          },
-          "404": {
-            "description": "Post not found"
-          }
+          "200": { "description": "Post deleted" },
+          "404": { "description": "Post not found" }
         }
       }
     },
     "/posts/search": {
       "get": {
-        "summary": "Search posts by title or content",
+        "summary": "Search posts by title, content, author, or date",
         "tags": ["Post"],
         "produces": ["application/json"],
         "parameters": [
-          {
-            "name": "title",
-            "in": "query",
-            "type": "string",
-            "description": "Search term for title"
-          },
-          {
-            "name": "content",
-            "in": "query",
-            "type": "string",
-            "description": "Search term for content"
-          }
+          { "name": "title", "in": "query", "type": "string", "description": "Search term for title" },
+          { "name": "content", "in": "query", "type": "string", "description": "Search term for content" },
+          { "name": "author", "in": "query", "type": "string", "description": "Search term for author" },
+          { "name": "date", "in": "query", "type": "string", "description": "Search term for date (YYYY-MM-DD)" }
         ],
         "responses": {
           "200": {
-            "description": "List of matching posts"
+            "description": "List of matching posts",
+            "schema": { "type": "array", "items": { "$ref": "#/definitions/Post" } }
           }
         }
       }
